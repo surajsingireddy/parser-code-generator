@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include "lexical.h"
 
 #define MAX_SIZE 5000
 #define MAX_IDENT 11
-#define INTERNAL false
-#define SYMBOLIC true
+#define INTERNAL 0
+#define SYMBOLIC 1
 
 char *getSym(token_type t) {
 	switch (t) {
@@ -77,7 +76,7 @@ TokenNode *addNode(TokenNode *head, Token *toke) {
 	return head;
 }
 
-void printList(TokenNode *head, bool repr) {
+void printList(TokenNode *head, int repr) {
 	TokenNode *temp = head;
 
 	if (repr) printf("Symbolic Representation:\n");
@@ -332,7 +331,6 @@ Token *nextToken(int *counter, char *contents) {
 	Token *toke = (Token *)malloc(sizeof(Token));
 	token_type t;
 	char word[MAX_IDENT+1];
-	bool comment = false;
 	int i;
 
 	if(checkOther(contents[*counter]))
@@ -359,7 +357,7 @@ Token *nextToken(int *counter, char *contents) {
 		
 		case slashsym:
 			if (contents[*counter+1] == '*') {
-				while (true) {
+				while (1) {
 					while (contents[(*counter)++] != '*');
 					if (contents[(*counter)++] == '/') break;
 				}
@@ -403,7 +401,7 @@ Token *nextToken(int *counter, char *contents) {
 	return toke;
 }
 
-TokenNode *analyze(int fileSize, char *contents, bool output) {
+TokenNode *analyze(int fileSize, char *contents, int output) {
 	if (fileSize == -1) return;
 	int c = 0;
 	int i, j = 0;
@@ -420,15 +418,16 @@ TokenNode *analyze(int fileSize, char *contents, bool output) {
 	if (output == 0) return;
 
 	printf("-------------------------------------------\n");
-	printf("LIST OF LEXEMES/TOKENS:\n\n")
+	printf("LIST OF LEXEMES/TOKENS:\n\n");
 
 	printList(head, INTERNAL);
 	printList(head, SYMBOLIC);
 
+	return head;
 }
 
-int lex(char* filename, char output) {
+TokenNode *lex(char *filename, int output) {
 	char contents[MAX_SIZE] = {};
 	int fileSize = readFile(filename, contents);
-	analyze(fileSize, contents, output);
+	return analyze(fileSize, contents, output);
 }

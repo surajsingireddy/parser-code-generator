@@ -1,8 +1,6 @@
 #ifndef guard
 #define guard
 
-#include <stdbool.h>
-
 typedef enum {
 	nulsym = 1, identsym, numbersym, plussym, minussym, multsym, slashsym, 
 	oddsym, eqsym, neqsym, lessym, leqsym, gtrsym, geqsym, lparentsym, 
@@ -24,7 +22,7 @@ typedef struct TokenNode {
 char *getSym(token_type t);
 TokenNode *createNode(Token *toke);
 TokenNode *addNode(TokenNode *head, Token *toke);
-void printList(TokenNode *head, bool internal);
+void printList(TokenNode *head, int internal);
 int readFile(char *filename, char *contents);
 int isLetter(char c);
 int isDigit(char c);
@@ -34,7 +32,7 @@ Token *analyzeNumber(int *counter, char *contents, Token *toke);
 Token *analyzeIdentifier(int *counter, char *contents, Token *toke);
 int checkOther(char c);
 Token *nextToken(int *counter, char *contents);
-TokenNode *analyze(int fileSize, char *contents);
-int lex(char* filename, bool output);
+TokenNode *analyze(int fileSize, char *contents, int output);
+TokenNode *lex(char* filename, int output);
 
 #endif
