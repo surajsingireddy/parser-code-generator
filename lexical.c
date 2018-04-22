@@ -429,5 +429,6 @@ TokenNode *analyze(int fileSize, char *contents, int output) {
 TokenNode *lex(char *filename, int output) {
 	char contents[MAX_SIZE] = {};
 	int fileSize = readFile(filename, contents);
-	return analyze(fileSize, contents, output);
+	TokenNode *head = analyze(fileSize, contents, output);
+	return head;
 }

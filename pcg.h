@@ -1,5 +1,7 @@
-#ifndef guard
-#define guard
+#ifndef pcg_guard
+#define pcg_guard
+
+#include "lexical.h"
 
 typedef struct {
    int kind;   
@@ -16,6 +18,9 @@ typedef struct instruction {
 	int m;	// M : number, program address, data address, register
 } instruction;
 
-instruction **pcg(lexemes, flags&2)
+void pcg(TokenNode *token, int flag);
+void factor(TokenNode *token);
+void expression(TokenNode *token);
+void term(TokenNode *token);
 
 #endif

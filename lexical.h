@@ -1,5 +1,5 @@
-#ifndef guard
-#define guard
+#ifndef lex_guard
+#define lex_guard
 
 typedef enum {
 	nulsym = 1, identsym, numbersym, plussym, minussym, multsym, slashsym, 
