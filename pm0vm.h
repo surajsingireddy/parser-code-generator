@@ -19,5 +19,6 @@ typedef struct instruction {
 	int m;	// M : number, program address, data address, register
 } instruction;
 
+void vm(instruction **inst, int flag);
 
 #endif

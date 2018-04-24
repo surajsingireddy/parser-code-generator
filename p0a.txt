@@ -1,0 +1,8 @@
+var x, y;
+begin
+x := 350; 
+y := 1;
+
+if  x < y+300  then write y;
+if  x <= y+300  then write y;
+end.

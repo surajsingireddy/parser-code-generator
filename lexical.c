@@ -415,7 +415,7 @@ TokenNode *analyze(int fileSize, char *contents, int output) {
 		if(toke != NULL) head = addNode(head, toke);
 	}
 
-	if (output == 0) return;
+	if (output == 0) return head;
 
 	printf("-------------------------------------------\n");
 	printf("LIST OF LEXEMES/TOKENS:\n\n");

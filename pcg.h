@@ -14,8 +14,8 @@ typedef struct {
 
 instruction **pcg(TokenNode *token, int flag);
 void addInst(instruction **inst, int op, int r, int l, int m);
-void factor(TokenNode *token, instruction **inst);
-void expression(TokenNode *token, instruction **inst);
-void term(TokenNode *token, instruction **inst);
+instruction factor(TokenNode **token, instruction **inst, int *flag);
+void expression(TokenNode **token, instruction **inst, int *flag);
+void term(TokenNode **token, instruction **inst, int *flag);
 
 #endif

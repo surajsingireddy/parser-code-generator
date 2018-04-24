@@ -41,7 +41,7 @@ void printStack(int sp, int bp, int *stack, int lex){
 }
 
 
-void executeCycle(instruction *inst, int *sp, int *bp, int *pc, int *lex, int stack[], int registers[]) {
+void executeCycle(instruction *inst, int *sp, int *bp, int *pc, int *lex, int stack[], int registers[], int flag) {
 	char* str = malloc(sizeof(char) * 4);
 	int i;
 	// most likely a switch statement with the various instructions in them
@@ -114,7 +114,7 @@ void executeCycle(instruction *inst, int *sp, int *bp, int *pc, int *lex, int st
 			strcpy(str, "SIO");
 			switch(inst->m) {
 				case 1:
-					printf("%d\n", registers[inst->r]);
+					printf("OUTPUT: %d\n", registers[inst->r]);
 					break;
 				case 2:
 					scanf("%d", &registers[inst->r]);
@@ -196,13 +196,15 @@ void executeCycle(instruction *inst, int *sp, int *bp, int *pc, int *lex, int st
 		*lex -= 1;
 	}
 
-	printf("%-4s%3d%3d%3d[%3d%3d%3d] ", str, inst->r, inst->l, inst->m, *pc, *bp, *sp);
-	printStack(*sp, *bp, stack, *lex);
-	printf("\n\tRegisters:[");
-	for(i=0; i<8; i++) {
-		printf("%3d", registers[i]);
+	if (flag != 0) {
+		printf("%-4s%3d%3d%3d[%3d%3d%3d] ", str, inst->r, inst->l, inst->m, *pc, *bp, *sp);
+		printStack(*sp, *bp, stack, *lex);
+		printf("\nRF:");
+		for(i=0; i<8; i++) {
+			printf(" %d", registers[i]);
+		}
+		printf("\n");
 	}
-	printf("]\n");
 
 	if(strcmp(str, "CAL") == 0) {
 		*lex += 1;
@@ -211,14 +213,14 @@ void executeCycle(instruction *inst, int *sp, int *bp, int *pc, int *lex, int st
 	free(str);
 }
 
-int cycle(instruction **cs, int *sp, int *bp, int *pc, int *lex, int stack[], int registers[]) {
+int cycle(instruction **cs, int *sp, int *bp, int *pc, int *lex, int stack[], int registers[], int flag) {
 
 	// Lots of code will go here, for now just outlining the steps we need to go through
 	// first we get an instruction from the "code" store and put it in the IR
 	instruction *inst = fetchCycle(cs, pc);
 	
 	// Executes the instruction fetched
-	executeCycle(inst, sp, bp, pc, lex, stack, registers);
+	executeCycle(inst, sp, bp, pc, lex, stack, registers, flag);
 	// The above two process are considered one cycle in the P-Machine
 	return 0;
 }
@@ -246,26 +248,31 @@ int getInstructions(instruction** cs, char* fName) {
 	return i;
 }
 
-int main2(int argc, char** argsv) {
+void vm(instruction **inst, int flag) {
+
+	if (flag != 0) {
+		printf("\n-------------------------------------------\n");
+		printf("VIRTUAL MACHINE TRACE:\n");
+		printf("Initial Values:\n");
+		printf("PC\tBP\tSP\tStack\n");
+		printf("0\t1\t0\t0\n");
+	} else {
+		printf("\n-------------------------------------------\n");
+		printf("PROGRAM INPUT/OUTPUT:\n");
+	}
+
 	int i, j, sp=0, bp=1, pc=0, lex=0;
 	// stack initialized to 0
 	int stack[MAX_STACK_HEIGHT] = {};
 	// initializes register files
 	int registers[INSTRUCTION_REGISTERS] = {};
-	instruction** cs = malloc(sizeof(instruction*) * MAX_CODE_LENGTH);
 
-	if(argc < 2)
-		return 0;
-
-	printf("\n OP   Rg Lx Vl[ PC BP SP]\n");
-	i = getInstructions(cs, argsv[1]);
+	if (flag != 0) printf("\n OP   Rg Lx Vl[ PC BP SP]\n");
+	i = MAX_STACK_HEIGHT;
 
 	while (pc < i && !haltFlag) {
-		cycle(cs, &sp, &bp, &pc, &lex, stack, registers);
+		cycle(inst, &sp, &bp, &pc, &lex, stack, registers, flag);
 	}
 
-
-	free(cs);
-
-	return 0;
+	free(inst);
 }
