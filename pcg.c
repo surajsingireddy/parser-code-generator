@@ -1,3 +1,9 @@
+/*
+* COP3402 - Spring 2018
+* System Software Assignment 3
+* Submitted by: Suraj Singireddy (su365398), Gavin Knopp (ga803888)
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
