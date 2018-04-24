@@ -97,7 +97,10 @@ void printList(TokenNode *head, int repr) {
 int readFile(char *filename, char *contents) {
 	FILE *file = fopen(filename, "r");
 
-	if (file == NULL) return -1;
+	if (file == NULL) {
+		printf("File not found.");
+		exit(1);
+	}
 
 	int i = 0;
 	char c;
@@ -402,7 +405,6 @@ Token *nextToken(int *counter, char *contents) {
 }
 
 TokenNode *analyze(int fileSize, char *contents, int output) {
-	if (fileSize == -1) return;
 	int c = 0;
 	int i, j = 0;
 	token_type *tokenTypes = (token_type *)malloc(fileSize*sizeof(token_type));
