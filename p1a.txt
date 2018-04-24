@@ -1,7 +1,8 @@
-var x, y, z;
+const x = 3;
+var y, z;
 begin
 /* test assignments */
-x :=5; 
+x := 5; 
 y := 3;
 z := 0;
 /* test operators */

@@ -4,8 +4,9 @@
 #include "pcg.h"
 
 void main(int argc, char **argv) {
+	instruction **inst;
 	char *filename = argv[1];
-	int i = 1;
+	int i;
 	int flags = 0;
 
 	while (++i < argc && argv[i][0] == '-') {
@@ -17,5 +18,11 @@ void main(int argc, char **argv) {
 	printf("%d\n", flags);
 
 	TokenNode *lexemes = lex(filename, flags&1);
-	pcg(lexemes, flags&2);
+
+	inst = pcg(lexemes, flags&2);
+
+	for(i=0; i<MAX_STACK_HEIGHT; i++) {
+		printf("%d %d %d %d", inst[i]->op, inst[i]->r, inst[i]->l, inst[i]->m);
+		if (inst[i]->op == SIO && inst[i]->m == 3) break;
+	}
 }

@@ -2,6 +2,7 @@
 #define pcg_guard
 
 #include "lexical.h"
+#include "pm0vm.h"
 
 typedef struct {
    int kind;   
@@ -11,16 +12,10 @@ typedef struct {
    int addr;
 } symbol;
 
-typedef struct instruction {
-	int op; // opcode
-	int r;	// register
-	int l;	// L : lexicographical level or register
-	int m;	// M : number, program address, data address, register
-} instruction;
-
-void pcg(TokenNode *token, int flag);
-void factor(TokenNode *token);
-void expression(TokenNode *token);
-void term(TokenNode *token);
+instruction **pcg(TokenNode *token, int flag);
+void addInst(instruction **inst, int op, int r, int l, int m);
+void factor(TokenNode *token, instruction **inst);
+void expression(TokenNode *token, instruction **inst);
+void term(TokenNode *token, instruction **inst);
 
 #endif

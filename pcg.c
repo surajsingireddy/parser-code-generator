@@ -1,7 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "pcg.h"
 #include "lexical.h"
+#include "pm0vm.h"
+
+#define MAX_SYMBOL_TABLE_SIZE (2<<6)-1
+
+symbol *symbol_table[MAX_SYMBOL_TABLE_SIZE];
+int s = 0, idx = 0;
 
 void err(int e) {
 	switch (e) {
@@ -54,7 +61,7 @@ void err(int e) {
 			printf("Call of a constant or variable is meaningless."); 
 			exit(e); 
 		case 16:  
-			printf("then  expected."); 
+			printf("then expected."); 
 			exit(e); 
 		case 17:  
 			printf("Semicolon or } expected."); 
@@ -103,95 +110,157 @@ int nexttype(TokenNode *token, token_type t) {
 
 int isRelation(TokenNode *token) {
 	switch (token->toke->type) {
-		case lessym: return 1;
-		case gtrsym: return 1;
-		case leqsym: return 1;
-		case geqsym: return 1;
-		case eqsym: return 1;
-		case neqsym: return 1;
+		case lessym: return LSS;
+		case gtrsym: return GTR;
+		case leqsym: return LEQ;
+		case geqsym: return GEQ;
+		case eqsym: return EQL;
+		case neqsym: return NEQ;
 		default: return 0;
 	}
 }
 
-void factor(TokenNode *token) {
-	if (type(token, identsym) || type(token, numbersym)) next(&token);
-	else if (type(token, lparentsym)) {
+void factor(TokenNode *token, instruction **inst) {
+	int i;
+	if (type(token, identsym)) {
+		addInst(inst, LOD, 2, 0, symbol_table[getIndex(token->toke->lexeme)]->addr);
 		next(&token);
-		expression(token);
-		if (!type(token, rparentsym)) err(0);
+	} else if (type(token, numbersym)) {
+		addInst(inst, LIT, 2, 0, atoi(token->toke->lexeme));
 		next(&token);
-	} else err(0);
+	} else if (type(token, lparentsym)) {
+		next(&token);
+		expression(token, inst);
+		addInst(inst, LIT, 2, 0, 0);
+		addInst(inst, ADD, 2, 0, 2);
+		if (!type(token, rparentsym)) err(22);
+		next(&token);
+	} else err(24);
 }
 
-void term(TokenNode *token) {
-	factor(token);
+void term(TokenNode *token, instruction **inst) {
+	factor(token, inst);
+	addInst(inst, LIT, 1, 0, 0);
+	addInst(inst, ADD, 1, 1, 2);
 	while (type(token, multsym) || type(token, slashsym)) {
-		next(&token);
-		factor(token);
-	}
-}
+		if (type(token, multsym)) {
+			next(&token);
+			factor(token, inst);
+			addInst(inst, MUL, 1, 1, 2);
+		} else {
+			next(&token);
+			factor(token, inst);
+			addInst(inst, DIV, 1, 1, 2);
+}	}	}
 
-void expression(TokenNode *token) {
-	if (type(token, plussym) || type(token, minussym)) next(&token);
-	term(token);
+void expression(TokenNode *token, instruction **inst) {
+	int neg = 0;
+	if (type(token, plussym)) {
+		next(&token);
+	} else if (type(token, minussym)) {
+		neg = 1;
+		next(&token);
+	}
+
+	term(token, inst);
+
+	addInst(inst, LIT, 0, 0, 0);
+	addInst(inst, ADD, 0, 0, 1);
+	if (neg == 1) {
+		addInst(inst, NEG, 0, 0, 0);
+	}
+
 	while (type(token, plussym) || type(token, minussym)) {
-		next(&token);
-		term(token);
-	}
-}
+		if (type(token, plussym)) {
+			next(&token);
+			term(token, inst);
+			addInst(inst, ADD, 0, 0, 1);
+		} else {
+			next(&token);
+			term(token, inst);
+			addInst(inst, SUB, 0, 0, 1);
+}	}	}
 
-void condition(TokenNode *token) {
+void condition(TokenNode *token, instruction **inst) {
+	int rel;
 	if (type(token, oddsym)) {
 		next(&token);
-		expression(token);
+		expression(token, inst);
+		addInst(inst, ODD, 0, 0, 0);
 	} else {
-		expression(token);
-		if (!isRelation(token)) err(0);
+		expression(token, inst);
+		addInst(inst, LIT, 1, 0, 0);
+		addInst(inst, ADD, 1, 0, 1);
+		rel = isRelation(token);
+		if (rel == 0) err(20);
 		next(&token);
-		expression(token);
+		expression(token, inst);
+		addInst(inst, rel, 0, 0, 1);
 	}
 }
 
-void statement(TokenNode *token) {
+void statement(TokenNode *token, instruction **inst) {
+	int ifpc, thenpc, i;
 	if (type(token, identsym)) {
-		if (!nexttype(token, becomessym)) err(0);
+		i = getIndex(token->toke->lexeme);
+		if (!nexttype(token, becomessym)) err(3);
 		next(&token);
-		expression(token);
+		expression(token, inst);
+		addInst(inst, STO, 0, 0, symbol_table[i]->addr);
 	} else if (type(token, callsym)) {
-		if (!nexttype(token, identsym)) err(0);
+		if (!nexttype(token, identsym)) err(14);
 		next(&token);
 	} else if (type(token, beginsym)) {
-		next(&token);
-		statement(token);
-		while (type(token, semicolonsym)) {
+		do {
 			next(&token);
-			statement(token);
-		}
+			statement(token, inst);
+		} while (type(token, semicolonsym));
 
 		if (!type(token, endsym)) err(0);
 
 		next(&token);
 	} else if (type(token, ifsym)) {
 		next(&token);
-		condition(token);
-		if (!type(token, thensym)) err(0);
+		condition(token, inst);
+		thenpc = idx;
+		addInst(inst, JPC, 0, 0, 0);
+		if (!type(token, thensym)) err(16);
 		next(&token);
-		statement(token);
+		statement(token, inst);
+		inst[thenpc]->m = idx;
 	} else if (type(token, whilesym)) {
 		next(&token);
-		condition(token);
-		if (!type(token, dosym)) err(0);
+		ifpc = idx;
+		condition(token, inst);
+		thenpc = idx;
+		addInst(inst, JPC, 0, 0, 0);
+		if (!type(token, dosym)) err(18);
 		next(&token);
-		statement(token);
+		statement(token, inst);
+		addInst(inst, JMP, 0, 0, ifpc);
+		inst[thenpc]->m = idx;
+	} else if (type(token, readsym)) {
+		addInst(inst, SIO, 0, 0, 2);
+		next(&token);
+	} else if (type(token, writesym)) {
+		addInst(inst, SIO, 0, 0, 1);
+		next(&token);
 	}
 }
 
-void block(TokenNode *token) {
+void block(TokenNode *token, instruction **inst) {
+	int i;
 	if (type(token, constsym)) {
 		do {
+			symbol_table[s] = (symbol *)malloc(sizeof(symbol));
 			if (!nexttype(token, identsym)) err(0);
+			strcpy(symbol_table[s]->name, token->toke->lexeme);
 			if (!nexttype(token, eqsym)) err(0);
 			if (!nexttype(token, numbersym)) err(0);
+			symbol_table[s]->val = atoi(token->toke->lexeme);
+			symbol_table[s]->kind = 1;
+			symbol_table[s]->level = 0;
+			symbol_table[s++]->addr = s+4;
 		} while (nexttype(token, commasym));
 
 		if (!type(token, semicolonsym)) err(0);
@@ -199,9 +268,14 @@ void block(TokenNode *token) {
 		next(&token);
 	}
 
-	if (type(token, numbersym)) {
+	if (type(token, varsym)) {
 		do {
 			if (!nexttype(token, identsym)) err(0);
+			symbol_table[s] = (symbol *)malloc(sizeof(symbol));
+			symbol_table[s]->val = 0;
+			symbol_table[s]->kind = 2;
+			symbol_table[s]->level = 0;
+			symbol_table[s++]->addr = s+4;
 		} while (nexttype(token, commasym));
 
 		if (!type(token, semicolonsym)) err(0);
@@ -213,19 +287,48 @@ void block(TokenNode *token) {
 		if (!nexttype(token, identsym)) err(0);
 		if (!nexttype(token, semicolonsym)) err(0);
 		next(&token);
-		block(token);
+		block(token, inst);
 		if (!nexttype(token, semicolonsym)) err(0);
 		next(&token);
 	}
 
-	statement(token);
+	addInst(inst, 6, 0, 0, s+4);
+
+	for (i=0; i<s; i++) {
+		if (symbol_table[i]->kind == 1) {
+			addInst(inst, 1, 0, 0, symbol_table[i]->val);
+			addInst(inst, 4, 0, 0, symbol_table[i]->addr);
+		}
+	}
+
+	statement(token, inst);
 }
 
-void program(TokenNode *token) {
-	block(token);
+void addInst(instruction **inst, int op, int r, int l, int m) {
+	inst[idx] = (instruction *)malloc(sizeof(instruction));
+	inst[idx]->op = op;
+	inst[idx]->r = r;
+	inst[idx]->l = l;
+	inst[idx++]->m = m;
+}
+
+int getIndex(char *lexeme) {
+	int i;
+	for(i=0; i<s; i++) {
+		if (strcmp(lexeme, symbol_table[i]->name) == 0) return i;
+	}
+
+	return -1;
+}
+
+void program(TokenNode *token, instruction **inst) {
+	block(token, inst);
 	if (type(token, periodsym)) err(9);
+	addInst(inst, SIO, 0, 0, 3);
 }
 
-void pcg(TokenNode *token, int flag) {
-	program(token);
+instruction **pcg(TokenNode *token, int flag) {
+	instruction *inst[MAX_STACK_HEIGHT] = {};
+	program(token, inst);
+	return inst;
 }
